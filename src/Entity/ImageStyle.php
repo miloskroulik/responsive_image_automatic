@@ -58,7 +58,7 @@ class ImageStyle extends ImageStyleOriginal {
   }
 
   /**
-   * The parent createDerivative method which writes to the filesystem.
+   * The parent createDerivative method which writes to the file system.
    */
   public function writeDerivative($original_uri, $derivative_uri) {
     parent::createDerivative($original_uri, $derivative_uri);
@@ -87,6 +87,7 @@ class ImageStyle extends ImageStyleOriginal {
     }
 
     $automatic_sizes = $this->getAutomaticDerivativeSizes($original_size);
+    $original_derivative_dimensions = $this->getDimensions($original_derivative_uri);
 
     $file_system = $this->getFileSystem();
 
@@ -97,13 +98,40 @@ class ImageStyle extends ImageStyleOriginal {
     $directory = $file_system->dirname($original_derivative_uri);
 
     foreach ($automatic_sizes as $size) {
+      // Don't create derivatives which are equal or bigger in size.
+      if ($size >= $original_derivative_dimensions['width']) {
+        continue;
+      }
       $derivatives[$size] = $directory . DIRECTORY_SEPARATOR . $filename . '_' . $size . $extension;
     }
     return $derivatives;
   }
 
+  /**
+   * Get the file system service.
+   *
+   * @return \Drupal\Core\File\FileSystemInterface
+   *   The file system.
+   */
   public function getFileSystem() {
     return \Drupal::service('file_system');
+  }
+
+  /**
+   * Get the dimensions of an image on the file system.
+   *
+   * @param $uri
+   *   The URI the poll.
+   *
+   * @return array
+   *   An array of dimensions for the given URI.
+   */
+  public function getDimensions($uri) {
+    list($width, $height) = getimagesize($uri);
+    return [
+      'width' => $width,
+      'height' => $height,
+    ];
   }
 
   /**
