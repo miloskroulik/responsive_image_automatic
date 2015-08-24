@@ -48,7 +48,7 @@ class ResponsiveImageAutomaticTest extends UnitTestCase {
   public function testDerivativesNotCreatedBiggerThanOriginal() {
     $image_style = $this->getMockImageStyleEntity(2000, 2000);
     $image_style
-      ->expects($this->any())
+      ->expects($this->exactly(3))
       ->method('writeDerivative')
       ->willReturnCallback(function ($original, $new) {
         $this->assertEquals($original, 'public://upload.jpg');
@@ -67,7 +67,7 @@ class ResponsiveImageAutomaticTest extends UnitTestCase {
     $image_style = $this->getMockImageStyleEntity(500, 500);
 
     $image_style
-      ->expects($this->atMost(1))
+      ->expects($this->exactly(1))
       ->method('writeDerivative')
       ->willReturnCallback(function ($original, $new) {
         $this->assertEquals($original, 'public://upload.jpg');
@@ -82,7 +82,7 @@ class ResponsiveImageAutomaticTest extends UnitTestCase {
   public function testNoResizeEffect() {
     $image_style = $this->getMockImageStyleEntity(1000, 1000, []);
     $image_style
-      ->expects($this->atMost(1))
+      ->expects($this->exactly(1))
       ->method('writeDerivative')
       ->willReturnCallback(function ($original, $new) {
         $this->assertEquals($original, 'public://upload.jpg');
