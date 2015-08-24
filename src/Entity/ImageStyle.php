@@ -58,13 +58,6 @@ class ImageStyle extends ImageStyleOriginal {
   }
 
   /**
-   * The parent createDerivative method which writes to the file system.
-   */
-  public function writeDerivative($original_uri, $derivative_uri) {
-    return parent::createDerivative($original_uri, $derivative_uri);
-  }
-
-  /**
    * Get the automatic derivatives.
    *
    * @param $original_derivative_uri
@@ -105,33 +98,6 @@ class ImageStyle extends ImageStyleOriginal {
       $derivatives[$size] = $directory . DIRECTORY_SEPARATOR . $filename . '_' . $size . $extension;
     }
     return $derivatives;
-  }
-
-  /**
-   * Get the file system service.
-   *
-   * @return \Drupal\Core\File\FileSystemInterface
-   *   The file system.
-   */
-  public function getFileSystem() {
-    return \Drupal::service('file_system');
-  }
-
-  /**
-   * Get the dimensions of an image on the file system.
-   *
-   * @param $uri
-   *   The URI the poll.
-   *
-   * @return array
-   *   An array of dimensions for the given URI.
-   */
-  public function getDimensions($uri) {
-    list($width, $height) = getimagesize($uri);
-    return [
-      'width' => $width,
-      'height' => $height,
-    ];
   }
 
   /**
@@ -204,6 +170,40 @@ class ImageStyle extends ImageStyleOriginal {
       $sizes[] = $image_size - ($i * static::AUTOMATIC_WIDTH_CHANGE_INCREMENTS);
     }
     return $sizes;
+  }
+
+  /**
+   * Get the file system service.
+   *
+   * @return \Drupal\Core\File\FileSystemInterface
+   *   The file system.
+   */
+  public function getFileSystem() {
+    return \Drupal::service('file_system');
+  }
+
+  /**
+   * Get the dimensions of an image on the file system.
+   *
+   * @param $uri
+   *   The URI the poll.
+   *
+   * @return array
+   *   An array of dimensions for the given URI.
+   */
+  public function getDimensions($uri) {
+    list($width, $height) = getimagesize($uri);
+    return [
+      'width' => $width,
+      'height' => $height,
+    ];
+  }
+
+  /**
+   * The parent createDerivative method which writes to the file system.
+   */
+  public function writeDerivative($original_uri, $derivative_uri) {
+    return parent::createDerivative($original_uri, $derivative_uri);
   }
 
 }

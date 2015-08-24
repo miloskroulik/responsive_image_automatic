@@ -23,9 +23,9 @@ class ResponsiveImageAutomaticTest extends UnitTestCase {
     $image_style = $this->getMockImageStyleEntity(1200, 1200);
     $writes = 1;
     $image_style
-      ->expects($this->any())
+      ->expects($this->exactly(3))
       ->method('writeDerivative')
-      ->willReturnCallback(function($original, $new) use (&$writes) {
+      ->willReturnCallback(function ($original, $new) use (&$writes) {
         switch ($writes) {
           case 1:
             $this->assertEquals($new, 'public://styles/large/upload_5000x5000.jpg');
@@ -50,25 +50,66 @@ class ResponsiveImageAutomaticTest extends UnitTestCase {
     $image_style
       ->expects($this->any())
       ->method('writeDerivative')
-      ->willReturnCallback(function($original, $new) {
+      ->willReturnCallback(function ($original, $new) {
         $this->assertEquals($original, 'public://upload.jpg');
         // Ensure no images larger than 1200x1200 are created, even though the
         // style specifies 2000x2000.
-        $this->assertNotEquals($new, 'public://styles/large/target_1600.jpg');
-        $this->assertNotEquals($new, 'public://styles/large/target_1200.jpg');
+        $this->assertNotEquals($new, 'public://upload_1200x1200_1600.jpg');
+        $this->assertNotEquals($new, 'public://upload_1200x1200_1200.jpg');
       });
     $image_style->createDerivative('public://upload.jpg', 'public://upload_1200x1200.jpg');
   }
 
   /**
+   * Test no derivatives are created of the style is under the size threshold.
+   */
+  public function testDerivativesCreatedIfUnderThreshold() {
+    $image_style = $this->getMockImageStyleEntity(500, 500);
+
+    $image_style
+      ->expects($this->atMost(1))
+      ->method('writeDerivative')
+      ->willReturnCallback(function ($original, $new) {
+        $this->assertEquals($original, 'public://upload.jpg');
+        $this->assertEquals($new, 'public://upload_1200x1200.jpg');
+      });
+    $image_style->createDerivative('public://upload.jpg', 'public://upload_1200x1200.jpg');
+  }
+
+  /**
+   * Test that it's business as usual if there is no resize effect.
+   */
+  public function testNoResizeEffect() {
+    $image_style = $this->getMockImageStyleEntity(1000, 1000, []);
+    $image_style
+      ->expects($this->atMost(1))
+      ->method('writeDerivative')
+      ->willReturnCallback(function ($original, $new) {
+        $this->assertEquals($original, 'public://upload.jpg');
+        $this->assertEquals($new, 'public://upload_1200x1200.jpg');
+      });
+    $image_style->createDerivative('public://upload.jpg', 'public://upload_1200x1200.jpg');
+  }
+
+  /**
+   * Test if the original write fails, no derivatives are attempted.
+   */
+  public function testFailedImageCreation() {
+    $image_style = $this->getMockImageStyleEntity(1000, 1000, NULL, FALSE);
+    $image_style->createDerivative('public://upload.jpg', 'public://upload_1200x1200.jpg');
+    $image_style->expects($this->never())->method('getAutomaticDerivativeUris');
+  }
+
+  /**
    * Get the mock image style entity.
    */
-  public function getMockImageStyleEntity($resize_width, $resize_height) {
-    $resize_effect = $this->getMockBuilder('Drupal\image\Plugin\ImageEffect\ResizeImageEffect')
+  public function getMockImageStyleEntity($resize_width, $resize_height, $image_effects = NULL, $write_return_value = NULL) {
+
+    $resize_effect_mock = $this->getMockBuilder('Drupal\image\Plugin\ImageEffect\ResizeImageEffect')
       ->disableOriginalConstructor()
       ->setMethods(['getConfiguration'])
       ->getMock();
-    $resize_effect
+    $resize_effect_mock
       ->expects($this->any())
       ->method('getConfiguration')
       ->willReturn([
@@ -78,35 +119,50 @@ class ResponsiveImageAutomaticTest extends UnitTestCase {
         ],
       ]);
 
-    $file_system = $this->getMockBuilder('Drupal\Core\File\FileSystem')
+    $plugin_factory_mock = $this->getMockBuilder('Drupal\image\ImageEffectPluginCollection')
+      ->disableOriginalConstructor()
+      ->setMethods(['getIterator'])
+      ->getMock();
+    $plugin_factory_mock
+      ->expects($this->any())
+      ->method('getIterator')
+      ->willReturn($image_effects === NULL ? [
+        NULL,
+        $resize_effect_mock,
+        NULL,
+      ] : $image_effects);
+
+    $file_system_mock = $this->getMockBuilder('Drupal\Core\File\FileSystem')
       ->disableOriginalConstructor()
       ->setMethods(['dirname'])
       ->getMock();
-
-    $file_system
+    $file_system_mock
       ->expects($this->any())
       ->method('dirname')
-      ->willReturnCallback(function($path) {
+      ->willReturnCallback(function ($path) {
         return 'public://styles/large';
       });
 
-    $image_style = $this->getMockBuilder('Drupal\responsive_image_automatic\Entity\ImageStyle')
+    $image_style_mock = $this->getMockBuilder('Drupal\responsive_image_automatic\Entity\ImageStyle')
       ->disableOriginalConstructor()
-      ->setMethods(['writeDerivative', 'getResizeEffect', 'getFilesystem', 'getDimensions'])
+      ->setMethods([
+        'writeDerivative',
+        'getFilesystem',
+        'getDimensions',
+        'getEffects',
+      ])
       ->getMock();
-
-    $image_style
+    $image_style_mock
       ->expects($this->any())
-      ->method('getResizeEffect')
-      ->willReturn($resize_effect);
-
+      ->method('getEffects')
+      ->willReturn($plugin_factory_mock);
     // Allow us to mock image dimensions by specifying a filename that contains
     // DIGITSxDIGITS for the dimension values and have these work in the test
     // environment.
-    $image_style
+    $image_style_mock
       ->expects($this->any())
       ->method('getDimensions')
-      ->willReturnCallback(function($image_uri) {
+      ->willReturnCallback(function ($image_uri) {
         if (preg_match('/(\d*)(x)(\d*)/', $image_uri, $matches)) {
           return [
             'width' => $matches[1],
@@ -115,17 +171,16 @@ class ResponsiveImageAutomaticTest extends UnitTestCase {
         }
         return FALSE;
       });
-
-    $image_style
+    $image_style_mock
       ->expects($this->any())
       ->method('writeDerivative')
-      ->willReturn(TRUE);
-
-    $image_style
+      ->willReturn($write_return_value === NULL ? TRUE : $write_return_value);
+    $image_style_mock
       ->expects($this->any())
       ->method('getFilesystem')
-      ->willReturn($file_system);
-    return $image_style;
+      ->willReturn($file_system_mock);
+
+    return $image_style_mock;
   }
 
 }
