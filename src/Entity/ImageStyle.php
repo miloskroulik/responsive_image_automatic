@@ -61,7 +61,7 @@ class ImageStyle extends ImageStyleOriginal {
    * The parent createDerivative method which writes to the file system.
    */
   public function writeDerivative($original_uri, $derivative_uri) {
-    parent::createDerivative($original_uri, $derivative_uri);
+    return parent::createDerivative($original_uri, $derivative_uri);
   }
 
   /**
