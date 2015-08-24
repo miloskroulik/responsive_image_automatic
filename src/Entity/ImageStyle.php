@@ -32,7 +32,7 @@ class ImageStyle extends ImageStyleOriginal {
   public function createDerivative($original_uri, $derivative_uri) {
 
     // Ensure the parent behaviour of createDerivative is retained.
-    $full_size_derivative = parent::createDerivative($original_uri, $derivative_uri);
+    $full_size_derivative = $this->writeDerivative($original_uri, $derivative_uri);
     if (!$full_size_derivative) {
       return FALSE;
     }
@@ -50,11 +50,18 @@ class ImageStyle extends ImageStyleOriginal {
     foreach ($automatic_derivatives as $reduced_width => $filename) {
       $size_ratio = $reduced_width / $effect_width;
       $this->changeResizeEffectSizesByRatio($size_ratio);
-      parent::createDerivative($original_uri, $filename);
+      $this->writeDerivative($original_uri, $filename);
       $this->resetResizeEffectConfiguration();
     }
 
     return $full_size_derivative;
+  }
+
+  /**
+   * The parent createDerivative method which writes to the filesystem.
+   */
+  public function writeDerivative($original_uri, $derivative_uri) {
+    parent::createDerivative($original_uri, $derivative_uri);
   }
 
   /**
@@ -79,19 +86,24 @@ class ImageStyle extends ImageStyleOriginal {
       return $derivatives;
     }
 
-    $file_sytem = \Drupal::service('file_system');
     $automatic_sizes = $this->getAutomaticDerivativeSizes($original_size);
 
-    $basename = $file_sytem->basename($original_derivative_uri);
+    $file_system = $this->getFileSystem();
+
+    $basename = $file_system->basename($original_derivative_uri);
     $pos = strrpos($basename, '.');
     $filename = substr($basename, 0, $pos);
     $extension = substr($basename, $pos);
-    $directory = drupal_dirname($original_derivative_uri);
+    $directory = $file_system->dirname($original_derivative_uri);
 
     foreach ($automatic_sizes as $size) {
       $derivatives[$size] = $directory . DIRECTORY_SEPARATOR . $filename . '_' . $size . $extension;
     }
     return $derivatives;
+  }
+
+  public function getFileSystem() {
+    return \Drupal::service('file_system');
   }
 
   /**
