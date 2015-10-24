@@ -44,6 +44,7 @@ function responsive_image_automatic_preprocess_image_style(&$vars) {
 
   $style = ImageStyle::load($vars['style_name']);
   $automatic_derivatives = $style->getAutomaticDerivativeUris($vars['image']['#uri']);
+  ksort($automatic_derivatives);
 
   // Create sources for the picture element with each of the automatic
   // derivatives.
