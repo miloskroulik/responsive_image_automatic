@@ -54,9 +54,4 @@ function responsive_image_automatic_preprocess_image_style(&$variables) {
       'srcset' => \Drupal::service('file_url_generator')->generateAbsoluteString($automatic_derivative_uri),
     ]);
   }
-
-  // Ensure the polyfill is loaded for old browsers.
-  $vars['#attached'] = [
-    'library' => ['core/picturefill'],
-  ];
 }
