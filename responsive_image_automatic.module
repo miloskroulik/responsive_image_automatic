@@ -23,7 +23,7 @@ function responsive_image_automatic_entity_type_build(&$entity_info) {
 function responsive_image_automatic_theme_registry_alter(&$theme_registry) {
   // Don't use the core responsive image template because it relies on having
   // a responsive image entity.
-  $module_path = drupal_get_path('module', 'responsive_image_automatic');
+  $module_path = \Drupal::service('extension.list.module')->getPath('responsive_image_automatic');
   $theme_registry['image_style']['path'] = $module_path . '/templates';
 }
 
@@ -51,7 +51,7 @@ function responsive_image_automatic_preprocess_image_style(&$vars) {
   foreach ($automatic_derivatives as $width => $automatic_derivative_uri) {
     $vars['sources'][] = new Attribute([
       'media' => '(max-width: ' . $width . 'px)',
-      'srcset' => file_create_url($automatic_derivative_uri),
+      'srcset' => \Drupal::service('file_url_generator')->generateAbsoluteString($automatic_derivative_uri),
     ]);
   }
 
