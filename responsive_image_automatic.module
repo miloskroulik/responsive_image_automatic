@@ -30,26 +30,26 @@ function responsive_image_automatic_theme_registry_alter(&$theme_registry) {
 /**
  * Implements hook_preprocess_image_style().
  */
-function responsive_image_automatic_preprocess_image_style(&$vars) {
+function responsive_image_automatic_preprocess_image_style(&$variables) {
 
   // The fallback image element.
-  $vars['img_element'] = [
+  $variables['img_element'] = [
     '#theme' => 'image',
     '#srcset' => [
       [
-        'uri' => $vars['image']['#uri'],
+        'uri' => $variables['image']['#uri'],
       ],
     ],
   ];
 
-  $style = ImageStyle::load($vars['style_name']);
-  $automatic_derivatives = $style->getAutomaticDerivativeUris($vars['image']['#uri']);
+  $style = ImageStyle::load($variables['style_name']);
+  $automatic_derivatives = $style->getAutomaticDerivativeUris($variables['image']['#uri']);
   ksort($automatic_derivatives);
 
   // Create sources for the picture element with each of the automatic
   // derivatives.
   foreach ($automatic_derivatives as $width => $automatic_derivative_uri) {
-    $vars['sources'][] = new Attribute([
+    $variables['sources'][] = new Attribute([
       'media' => '(max-width: ' . $width . 'px)',
       'srcset' => \Drupal::service('file_url_generator')->generateAbsoluteString($automatic_derivative_uri),
     ]);
