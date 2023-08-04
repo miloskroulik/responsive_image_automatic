@@ -9,7 +9,6 @@ namespace Drupal\responsive_image_automatic\Entity;
 
 use Drupal\image\Entity\ImageStyle as ImageStyleOriginal;
 use Drupal\image\Plugin\ImageEffect\ResizeImageEffect;
-use Drupal\responsive_image_automatic\CalculationsUtility;
 
 /**
  * {@inheritdoc}
